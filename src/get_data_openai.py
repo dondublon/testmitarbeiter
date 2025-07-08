@@ -34,7 +34,7 @@ class Scrapper:
             self.ABOUT_PROMPT_TEMPLATE =  fpa.read()
 
         self.ai_model="gpt-3.5-turbo"
-
+        self.db = CompanyDB()
         os.makedirs("results", exist_ok=True)
 
     def get_clean_html_text(cls, html):
@@ -63,7 +63,7 @@ class Scrapper:
         json_obj = json.loads(content)
         return json_obj
 
-    def process_site(self, client, site):
+    def process_site(self, site):
         try:
             logger.info("Getting %s", site)
             home_page_result = self.query_internal(client, self.PROMPT_TEMPLATE, site)
@@ -71,11 +71,11 @@ class Scrapper:
             contact_result = about_result = {}
             if "contact_link" in home_page_result:
                 contact_link = urljoin(site, home_page_result["contact_link"])
-                contact_result = self.query_internal(client, self.CONTACT_PROMPT_TEMLATE, contact_link)
+                contact_result = self.query_internal(self.CONTACT_PROMPT_TEMLATE, contact_link)
                 logger.info("\tContact result %s", contact_result)
             if "about" in home_page_result:
                 about = urljoin(site, home_page_result["about_link"])
-                about_result = self.query_internal(client, self.ABOUT_PROMPT_TEMPLATE, about)
+                about_result = self.query_internal(self.ABOUT_PROMPT_TEMPLATE, about)
                 logger.info("\t'About' result %s", contact_result)
             final_result = home_page_result.copy()
             final_result["phone"] = home_page_result.get("phone") or contact_result.get("phone")
@@ -91,25 +91,26 @@ class Scrapper:
         with open("src/sites.txt", "r") as f:
             sites = [line.strip() for line in f if line.strip()]
 
-        db = CompanyDB()
-        client = self.get_client()
         for site in sites:
-            result = self.process_site(client, site)
+            result = self.process_site(site)
             if result:
                 # to dump results:
                 # domain_filename = urlparse(site).netloc.replace(".", "_")
                 # with open(f"oai_results/{domain_filename}.json", "w", encoding="utf-8") as f:
                 #     json.dump(result, f, ensure_ascii=False, indent=2)  # noqa
-                db.add(name=result.get('company_name'),
+                self.db.add(name=result.get('company_name'),
                        website=site,
                        country=result.get('country'),
                        description=result.get('description'),
                        phone=result.get('phone'),
                        email=result.get('email')
                        )
-        db.close()
+
+    def close(self):
+        self.db.close()
 
 if __name__ == "__main__":
     scrapper = Scrapper()
     scrapper.init()
     scrapper.get_all()
+    scrapper.close()
