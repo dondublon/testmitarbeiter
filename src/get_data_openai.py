@@ -17,7 +17,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def get_client():
-    with open("openai_key.txt", "r") as f:
+    with open("src/openai_key.txt", "r") as f:
         line = f.readline()
         client = OpenAI(api_key=line)
     return client
@@ -38,18 +38,19 @@ model="gpt-3.5-turbo"
 
 def get_clean_html_text(html):
     soup = BeautifulSoup(html, "lxml")
-    for tag in soup(["script", "style", "noscript"]):
-        tag.extract()
-    return str(soup)
+    #for tag in soup(["script", "style", "noscript"]):
+    #    tag.extract()
+    #return str(soup)
+    textonly = soup.get_text()
+    return textonly
 
 
-def query_internal(prompt, url):
+def query_internal(client, prompt, url):
     r = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
     r.raise_for_status()
     html = r.text
     clean_html = get_clean_html_text(html)
-    to_propmt = prompt.format(clean_html[:10000])
-    client = get_client()
+    to_propmt = prompt.format(clean_html[:20000])
     response = client.chat.completions.create(
         model=model,  # или "gpt-4"
         messages=[
@@ -64,16 +65,17 @@ def query_internal(prompt, url):
 def process_site(site):
     try:
         logger.info("Getting %s", site)
-        home_page_result = query_internal(PROMPT_TEMPLATE, site)
+        client = get_client()
+        home_page_result = query_internal(client, PROMPT_TEMPLATE, site)
         logger.info("\tHomepage result %s", site)
         contact_result = about_result = {}
         if "contact_link" in home_page_result:
             contact_link = urljoin(site, home_page_result["contact_link"])
-            contact_result = query_internal(CONTACT_PROMPT_TEMLATE, contact_link)
+            contact_result = query_internal(client, CONTACT_PROMPT_TEMLATE, contact_link)
             logger.info("\tContact result %s", contact_result)
         if "about" in home_page_result:
             about = urljoin(site, home_page_result["about_link"])
-            about_result = query_internal(ABOUT_PROMPT_TEMPLATE, about)
+            about_result = query_internal(client, ABOUT_PROMPT_TEMPLATE, about)
             logger.info("\t'About' result %s", contact_result)
         final_result = home_page_result.copy()
         final_result["phone"] = home_page_result.get("phone") or contact_result.get("phone")
