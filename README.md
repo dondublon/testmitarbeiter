@@ -3,10 +3,13 @@ Readme beginning.
 Описание
 ========
 Поскольку требуется собрать данные из абсолютно неструктурированных источников 
-(различные сайты), я решил прибегнуть к помощи ИИ. 
+(различные сайты), я решил прибегнуть к помощи ИИ.
+Доступ к API на этой модели - 0.0015 за 1 тыс. токенов, 
+я со всеми отладками пока не вышел за пределы 20 центов за эту задачу.
 В итоге найдено 14 телефонов и 19 емейлов.
 Не удалось скрапнуть, ошибка 403 (видимо. защита от скраппера):
-www.fast2work.de  https://www.abus.com/de  https://www.pinkbike.com/  https://background.tagesspiegel.de/ https://www.velototal.de/impressum/
+www.fast2work.de  https://www.abus.com/de  https://www.pinkbike.com/  
+https://background.tagesspiegel.de/ https://www.velototal.de/impressum/
 С этим надо разбираться, быстро не получится. 
 
 На robots.txt интересующих нас данных нет, на sitemap.xml тоже. 
