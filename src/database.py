@@ -1,4 +1,8 @@
+import logging
 import sqlite3
+
+
+logger = logging.getLogger(__name__)
 
 class CompanyDB:
     def __init__(self, db_path="companies.db"):
@@ -36,7 +40,7 @@ class CompanyDB:
             """, (name, website, country, description[:255], phone, email))
             self.conn.commit()
         except sqlite3.IntegrityError as e:
-            print(f"[!] Ошибка вставки: {e}")
+            logger.error(f"[!] Error inserting: {e}")
 
     def close(self):
         self.conn.close()
