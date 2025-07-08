@@ -23,7 +23,7 @@ class Scrapper:
             client = OpenAI(api_key=line)
         return client
 
-    def init(self):
+    def init(self, db_name='companies.db'):
         with open('src/prompts/general.txt') as fpg:
             self.PROMPT_TEMPLATE = fpg.read()
 
@@ -34,8 +34,9 @@ class Scrapper:
             self.ABOUT_PROMPT_TEMPLATE =  fpa.read()
 
         self.ai_model="gpt-3.5-turbo"
-        self.db = CompanyDB()
+        self.db = CompanyDB(db_name)
         os.makedirs("results", exist_ok=True)
+        self.client = self.get_client()
 
     def get_clean_html_text(cls, html):
         soup = BeautifulSoup(html, "lxml")
@@ -46,13 +47,13 @@ class Scrapper:
         return textonly
 
 
-    def query_internal(self, client, prompt, url):
+    def query_internal(self, prompt, url):
         r = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
         r.raise_for_status()
         html = r.text
         clean_html = self.get_clean_html_text(html)
         to_propmt = prompt.format(clean_html[:20000])
-        response = client.chat.completions.create(
+        response = self.client.chat.completions.create(
             model=self.ai_model,  # или "gpt-4"
             messages=[
                 {"role": "user", "content": to_propmt}
@@ -66,7 +67,7 @@ class Scrapper:
     def process_site(self, site):
         try:
             logger.info("Getting %s", site)
-            home_page_result = self.query_internal(client, self.PROMPT_TEMPLATE, site)
+            home_page_result = self.query_internal(self.PROMPT_TEMPLATE, site)
             logger.info("\tHomepage result %s", site)
             contact_result = about_result = {}
             if "contact_link" in home_page_result:

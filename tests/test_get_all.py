@@ -12,7 +12,7 @@ with patch("src.get_data_openai.Scrapper.get_client"):
 class TestGetAll(unittest.TestCase):
     def setUp(self):
         self.scrapper = Scrapper()  # ":memory:" для in-memory базы
-        self.scrapper.init()
+        self.scrapper.init('test_companies.db')
 
     def mock_process_site(self, site):
         domain_filename = site.replace("https://", "").replace("http://", "").replace(".", "_").strip("/")
