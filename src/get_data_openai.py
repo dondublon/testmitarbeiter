@@ -100,12 +100,12 @@ class Scrapper:
                 # with open(f"oai_results/{domain_filename}.json", "w", encoding="utf-8") as f:
                 #     json.dump(result, f, ensure_ascii=False, indent=2)  # noqa
                 self.db.add(name=result.get('company_name'),
-                       website=site,
-                       country=result.get('country'),
-                       description=result.get('description'),
-                       phone=result.get('phone'),
-                       email=result.get('email')
-                       )
+                            website=site,
+                            country=result.get('country'),
+                            description=result.get('description'),
+                            phone=result.get('phone'),
+                            email=result.get('email')
+                            )
 
     def close(self):
         self.db.close()

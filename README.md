@@ -12,7 +12,7 @@ www.fast2work.de  https://www.abus.com/de  https://www.pinkbike.com/  https://ba
 На robots.txt интересующих нас данных нет, на sitemap.xml тоже. 
 
 ## Подготовка
-Ставим пакеты традиционно, `pip intall -r requirements.txt`
+Ставим пакеты традиционно, `pip install -r requirements.txt`
 
 ## 1-й шаг
 `src/get_links.py`

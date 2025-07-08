@@ -30,11 +30,12 @@ class TestGetAll(unittest.TestCase):
         mock_process_site.side_effect = self.mock_process_site
         self.scrapper.get_all()
 
-        db = self.scrapper.db  # подключаемся к реальной базе, если не in-memory
+        db = self.scrapper.db
         db.cursor.execute("SELECT COUNT(*) FROM companies")
         count = db.cursor.fetchone()[0]
 
         self.assertGreater(count, 0, "Должны быть добавлены хотя бы некоторые записи из oai_results/")
+
 
 if __name__ == "__main__":
     unittest.main()
