@@ -7,6 +7,8 @@ import requests
 from bs4 import BeautifulSoup
 from openai import OpenAI
 
+from src.database import CompanyDB
+
 logging.basicConfig(
     level=logging.INFO,  # Показывает debug и выше
     format="%(asctime)s [%(levelname)s] %(message)s"
@@ -105,12 +107,22 @@ with open("sites.txt", "r") as f:
     sites = [line.strip() for line in f if line.strip()]
 
 def get_all():
+    db = CompanyDB()
     for site in sites:
         result = process_site(site)
         if result:
-            domain_filename = urlparse(site).netloc.replace(".", "_")
-            with open(f"oai_results/{domain_filename}.json", "w", encoding="utf-8") as f:
-                json.dump(result, f, ensure_ascii=False, indent=2)  # noqa
+            # to dump results:
+            # domain_filename = urlparse(site).netloc.replace(".", "_")
+            # with open(f"oai_results/{domain_filename}.json", "w", encoding="utf-8") as f:
+            #     json.dump(result, f, ensure_ascii=False, indent=2)  # noqa
+            db.add(name=result.get('company_name'),
+                   website=site,
+                   country=result.get('country'),
+                   description=result.get('description'),
+                   phone=result.get('phone'),
+                   email=result.get('email')
+                   )
+    db.close()
 
 if __name__ == "__main__":
     get_all()
