@@ -14,6 +14,9 @@ class TestGetAll(unittest.TestCase):
         self.scrapper = Scrapper()  # ":memory:" для in-memory базы
         self.scrapper.init('test_companies.db')
 
+    def tearDown(self):
+        self.scrapper.close()
+
     def mock_process_site(self, site):
         domain_filename = site.replace("https://", "").replace("http://", "").replace(".", "_").strip("/")
         filepath = os.path.join("oai_results", f"{domain_filename}.json")
@@ -30,7 +33,6 @@ class TestGetAll(unittest.TestCase):
         db = self.scrapper.db  # подключаемся к реальной базе, если не in-memory
         db.cursor.execute("SELECT COUNT(*) FROM companies")
         count = db.cursor.fetchone()[0]
-        self.scrapper.close()
 
         self.assertGreater(count, 0, "Должны быть добавлены хотя бы некоторые записи из oai_results/")
 
