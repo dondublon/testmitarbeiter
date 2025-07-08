@@ -28,6 +28,8 @@ class CompanyDB:
 
     def add(self, name, website, country, description, phone, email):
         try:
+            if description is None:
+                description = ""
             self.cursor.execute("""
                 INSERT INTO companies (name, website, country, description, phone, email)
                 VALUES (?, ?, ?, ?, ?, ?)

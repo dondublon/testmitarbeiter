@@ -3,7 +3,9 @@ from unittest.mock import patch
 import json
 import os
 
-from src.get_data_openai import get_all, CompanyDB, sites  # замените your_module на имя модуля
+with patch("src.get_data_openai.get_client"):
+    from src.get_data_openai import get_all, CompanyDB, sites  # замените your_module на имя модуля
+
 
 class TestGetAll(unittest.TestCase):
     def setUp(self):
@@ -20,7 +22,7 @@ class TestGetAll(unittest.TestCase):
         with open(filepath, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    @patch("your_module.process_site")
+    @patch("src.get_data_openai.process_site")
     def test_get_all_with_mocked_data(self, mock_process_site):
         mock_process_site.side_effect = self.mock_process_site
         get_all()

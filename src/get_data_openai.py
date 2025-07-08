@@ -1,7 +1,7 @@
 import os
 import logging
 import json
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup
@@ -16,31 +16,25 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-with open("openai_key.txt", "r") as f:
-    line = f.readline()
-    client = OpenAI(api_key=line)
+def get_client():
+    with open("openai_key.txt", "r") as f:
+        line = f.readline()
+        client = OpenAI(api_key=line)
+    return client
 
 CONTACT_PATTERNS = ["kontakt", "contact", "impressum", "unternehmen", "about"]
 
-with open('prompts/general.txt') as fpg:
+with open('src/prompts/general.txt') as fpg:
     PROMPT_TEMPLATE = fpg.read()
 
-with open('prompts/contact.txt') as fpc:
+with open('src/prompts/contact.txt') as fpc:
     CONTACT_PROMPT_TEMLATE = fpc.read()
 
-with open('prompts/about.txt') as fpa:
+with open('src/prompts/about.txt') as fpa:
     ABOUT_PROMPT_TEMPLATE =  fpa.read()
 
 model="gpt-3.5-turbo"
 
-
-# def find_contact_link(base_url, html):
-#     soup = BeautifulSoup(html, "lxml")
-#     for a in soup.find_all("a", href=True):
-#         href = a["href"].lower()
-#         if any(p in href for p in CONTACT_PATTERNS):
-#             return urljoin(base_url, a["href"])
-#     return None
 
 def get_clean_html_text(html):
     soup = BeautifulSoup(html, "lxml")
@@ -48,17 +42,6 @@ def get_clean_html_text(html):
         tag.extract()
     return str(soup)
 
-# def query_openai(html):
-#     prompt = PROMPT_TEMPLATE.format(html[:10000])  # ограничиваем размер
-#     response = client.chat.completions.create(
-#         model="gpt-3.5-turbo",  # или "gpt-4"
-#         messages=[
-#             {"role": "user", "content": prompt}
-#         ],
-#         temperature=0,
-#     )
-#     content = response.choices[0].message.content
-#     json_obj = json.loads(content)
 
 def query_internal(prompt, url):
     r = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
@@ -66,6 +49,7 @@ def query_internal(prompt, url):
     html = r.text
     clean_html = get_clean_html_text(html)
     to_propmt = prompt.format(clean_html[:10000])
+    client = get_client()
     response = client.chat.completions.create(
         model=model,  # или "gpt-4"
         messages=[
@@ -103,7 +87,7 @@ def process_site(site):
 
 os.makedirs("results", exist_ok=True)
 
-with open("sites.txt", "r") as f:
+with open("src/sites.txt", "r") as f:
     sites = [line.strip() for line in f if line.strip()]
 
 def get_all():
