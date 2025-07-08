@@ -62,10 +62,9 @@ def query_internal(client, prompt, url):
     json_obj = json.loads(content)
     return json_obj
 
-def process_site(site):
+def process_site(client, site):
     try:
         logger.info("Getting %s", site)
-        client = get_client()
         home_page_result = query_internal(client, PROMPT_TEMPLATE, site)
         logger.info("\tHomepage result %s", site)
         contact_result = about_result = {}
@@ -94,8 +93,9 @@ with open("src/sites.txt", "r") as f:
 
 def get_all():
     db = CompanyDB()
+    client = get_client()
     for site in sites:
-        result = process_site(site)
+        result = process_site(client, site)
         if result:
             # to dump results:
             # domain_filename = urlparse(site).netloc.replace(".", "_")
