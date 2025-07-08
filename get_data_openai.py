@@ -1,10 +1,18 @@
 import os
+import logging
+import json
+from urllib.parse import urljoin, urlparse
+
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin, urlparse
-import json
-
 from openai import OpenAI
+
+logging.basicConfig(
+    level=logging.INFO,  # Показывает debug и выше
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
+
+logger = logging.getLogger(__name__)
 
 with open("openai_key.txt", "r") as f:
     line = f.readline()
@@ -12,52 +20,14 @@ with open("openai_key.txt", "r") as f:
 
 CONTACT_PATTERNS = ["kontakt", "contact", "impressum", "unternehmen", "about"]
 
-PROMPT_TEMPLATE = """
-Ниже HTML страницы. Извлеки и верни в JSON:
-- "company_name": название компании
-- "email": email
-- "phone": телефон
-- "country": страна (название или код)
-- "description": краткое описание деятельности (1-2 предложения)
-Если не нашёл телефон или email, ищи ссылку на страницу с контактами. В этом случае в ִּJSON добавь поле "contact_link".
-Если на понял краткое описание деятельности, ищи раздел типа "about us". В этом случае добавь в JSON поле "about_link".
-   
-Ориентируйся на немецкий язык.
- 
-Вернуть только JSON, без пояснений.
+with open('prompts/general.txt') as fpg:
+    PROMPT_TEMPLATE = fpg.read()
 
-HTML:
-{}
-"""
-CONTACT_PROMPT_TEMLATE = """
-Ниже HTML страницы. Извлеки и верни в JSON:
-- "company_name": название компании
-- "email": email
-- "phone": телефон
-Если на понял краткое описание деятельности, ищи раздел типа "about us". В этом случае добавь в JSON поле "about_link".
+with open('prompts/contact.txt') as fpc:
+    CONTACT_PROMPT_TEMLATE = fpc.read()
 
-Ориентируйся на немецкий язык.
-
-Вернуть только JSON, без пояснений.
-
-HTML:
-{}
-"""
-ABOUT_PROMPT_TEMPLATE =  """
-Ниже HTML страницы. Извлеки и верни в JSON:
-- "company_name": название компании
-- "country": страна (название или код)
-- "description": краткое описание деятельности (1-2 предложения)
-Если не нашёл телефон или email, ищи ссылку на страницу с контактами. В этом случае в ִּJSON добавь поле "contact_link".
-Если на понял краткое описание деятельности, ищи раздел типа "about us". В этом случае добавь в JSON поле "about_link".
-   
-Ориентируйся на немецкий язык.
- 
-Вернуть только JSON, без пояснений.
-
-HTML:
-{}
-"""
+with open('prompts/about.txt') as fpa:
+    ABOUT_PROMPT_TEMPLATE =  fpa.read()
 
 model="gpt-3.5-turbo"
 
@@ -76,17 +46,17 @@ def get_clean_html_text(html):
         tag.extract()
     return str(soup)
 
-def query_openai(html):
-    prompt = PROMPT_TEMPLATE.format(html[:10000])  # ограничиваем размер
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",  # или "gpt-4"
-        messages=[
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0,
-    )
-    content = response.choices[0].message.content
-    json_obj = json.loads(content)
+# def query_openai(html):
+#     prompt = PROMPT_TEMPLATE.format(html[:10000])  # ограничиваем размер
+#     response = client.chat.completions.create(
+#         model="gpt-3.5-turbo",  # или "gpt-4"
+#         messages=[
+#             {"role": "user", "content": prompt}
+#         ],
+#         temperature=0,
+#     )
+#     content = response.choices[0].message.content
+#     json_obj = json.loads(content)
 
 def query_internal(prompt, url):
     r = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
@@ -107,14 +77,23 @@ def query_internal(prompt, url):
 
 def process_site(site):
     try:
+        logger.info("Getting %s", site)
         home_page_result = query_internal(PROMPT_TEMPLATE, site)
+        logger.info("\tHomepage result %s", site)
+        contact_result = about_result = {}
         if "contact_link" in home_page_result:
             contact_link = urljoin(site, home_page_result["contact_link"])
             contact_result = query_internal(CONTACT_PROMPT_TEMLATE, contact_link)
+            logger.info("\tContact result %s", contact_result)
         if "about" in home_page_result:
             about = urljoin(site, home_page_result["about_link"])
             about_result = query_internal(ABOUT_PROMPT_TEMPLATE, about)
-        pass
+            logger.info("\t'About' result %s", contact_result)
+        final_result = home_page_result.copy()
+        final_result["phone"] = home_page_result.get("phone") or contact_result.get("phone")
+        final_result["email"] = home_page_result.get("email") or contact_result.get("email")
+        final_result['description'] = home_page_result.get("description") or about_result.get("description")
+        return final_result
 
     except Exception as e:
         print(f"[!] Ошибка для {site}: {e}")
@@ -125,9 +104,13 @@ os.makedirs("results", exist_ok=True)
 with open("sites.txt", "r") as f:
     sites = [line.strip() for line in f if line.strip()]
 
-for site in sites:
-    result = process_site(site)
-    if result:
-        domain = urlparse(site).netloc.replace(".", "_")
-        with open(f"results/{domain}.json", "w", encoding="utf-8") as f:
-            json.dump(result, f, ensure_ascii=False, indent=2)
+def get_all():
+    for site in sites:
+        result = process_site(site)
+        if result:
+            domain_filename = urlparse(site).netloc.replace(".", "_")
+            with open(f"oai_results/{domain_filename}.json", "w", encoding="utf-8") as f:
+                json.dump(result, f, ensure_ascii=False, indent=2)  # noqa
+
+if __name__ == "__main__":
+    get_all()
