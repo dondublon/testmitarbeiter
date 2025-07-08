@@ -68,7 +68,7 @@ class Scrapper:
         try:
             logger.info("Getting %s", site)
             home_page_result = self.query_internal(self.PROMPT_TEMPLATE, site)
-            logger.info("\tHomepage result %s", site)
+            logger.info("\tHomepage result %s", home_page_result)
             contact_result = about_result = {}
             if "contact_link" in home_page_result:
                 contact_link = urljoin(site, home_page_result["contact_link"])
@@ -85,7 +85,7 @@ class Scrapper:
             return final_result
 
         except Exception as e:
-            print(f"[!] Ошибка для {site}: {e}")
+            logger.error(f"[!] Error getting {site}: {e}")
             return None
 
     def get_all(self):
