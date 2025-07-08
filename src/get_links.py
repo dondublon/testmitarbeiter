@@ -11,7 +11,6 @@ tree = html.fromstring(r.content)
 # links = tree.xpath('//a[contains(@class, "a-link--external")]/@href')
 links = tree.xpath('/html/body/main/footer//a[contains(@class, "a-link--external")]/@href')
 
-
-# for link in links:
-#    print(link)
-print(links)
+with open("sites.txt", "w") as f:
+    f.writelines(links)
+# print(links)
